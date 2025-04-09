@@ -115,6 +115,63 @@
             font-weight: bold;
         }
 
+        .forum-link {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #ff5733;
+            padding: 10px 20px;
+            border-radius: 5px;
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        #request-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #2e1a4d;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            width: 300px;
+        }
+
+        #request-modal textarea {
+            width: 100%;
+            height: 100px;
+            background: #1a0933;
+            border: 1px solid #33caff;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        #request-modal select {
+            width: 100%;
+            padding: 10px;
+            background: #1a0933;
+            border: 1px solid #33caff;
+            color: white;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        #request-modal button {
+            padding: 10px 20px;
+            background: #ff5733;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
         .hidden {
             display: none;
         }
@@ -133,6 +190,18 @@
         <input type="text" id="search-input" placeholder="Поиск по никнеймам или репозиториям">
     </div>
     <div class="repo-container" id="repo-container"></div>
+    <a href="#" class="forum-link" onclick="openRequestModal()">Оставить заявку</a>
+
+    <div id="request-modal">
+        <h3>Оставить заявку</h3>
+        <textarea id="request-text" placeholder="Текст заявки"></textarea>
+        <select id="request-department">
+            <option value="Отдел заявок">Отдел заявок</option>
+            <option value="Отдел репозитория">Отдел репозитория</option>
+        </select>
+        <button onclick="submitRequest()">Отправить</button>
+        <button onclick="closeRequestModal()">Закрыть</button>
+    </div>
 
     <script>
         async function loadRepositories() {
@@ -144,7 +213,6 @@
                         { name: "JarImporter", url: "https://api.github.com/repos/IGBerko/net.shaft.jar.JarImporter/releases" }
                     ]
                 }
-                // Добавь других пользователей команды shaft сюда
             ];
 
             const repoContainer = document.getElementById('repo-container');
@@ -229,10 +297,38 @@
             });
         }
 
-        window.onload = loadRepositories;
-    </script>
-</body>
-</html>
+        function openRequestModal() {
+            document.getElementById('request-modal').style.display = 'block';
+        }
+
+        function closeRequestModal() {
+            document.getElementById('request-modal').style.display = 'none';
+        }
+
+        function submitRequest() {
+            const text = document.getElementById('request-text').value;
+            const department = document.getElementById('request-department').value;
+
+            if (text.trim() === '') {
+                alert('Введите текст заявки!');
+                return;
+            }
+
+            const request = {
+                text: text,
+                department: department,
+                date: new Date().toISOString()
+            };
+
+            // Сохранение в localStorage
+            let requests = JSON.parse(localStorage.getItem('requests')) || [];
+            requests.push(request);
+            localStorage.setItem('requests', JSON.stringify(requests));
+
+            alert('Заявка отправлена!');
+            document.getElementById('request-text').value = '';
+            closeRequestModal();
+        }
 
         window.onload = loadRepositories;
     </script>
