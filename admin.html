@@ -155,6 +155,63 @@
             color: #33caff;
         }
 
+        .notification-bell {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            cursor: pointer;
+            font-size: 24px;
+            color: #33caff;
+            display: none;
+        }
+
+        .notification-bell:hover {
+            color: #ff5733;
+        }
+
+        .notification-bell::after {
+            content: attr(data-count);
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ff5733;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 12px;
+            display: none;
+        }
+
+        .notification-bell.has-notifications::after {
+            display: block;
+        }
+
+        .notification-list {
+            display: none;
+            position: fixed;
+            top: 50px;
+            right: 20px;
+            background: #2e1a4d;
+            border: 1px solid #33caff;
+            border-radius: 5px;
+            padding: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            width: 300px;
+            z-index: 1000;
+        }
+
+        .notification-item {
+            padding: 5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 5px;
+        }
+
+        .notification-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
         @keyframes glow {
             from { text-shadow: 0 0 10px #fff, 0 0 20px #ff5733, 0 0 30px #33caff; }
             to { text-shadow: 0 0 20px #fff, 0 0 30px #ff5733, 0 0 40px #33caff; }
@@ -171,6 +228,8 @@
         <input type="password" id="password-input" placeholder="Пароль">
         <button onclick="checkAuth()">Войти</button>
     </div>
+    <div class="notification-bell" id="notification-bell" data-count="0">🔔</div>
+    <div class="notification-list" id="notification-list"></div>
     <div class="requests-container" id="requests-container"></div>
     <div class="console-container" id="console-container">
         <h3>Консоль</h3>
@@ -182,6 +241,8 @@
         const CORRECT_LOGIN = "admin";
         const CORRECT_PASSWORD = "admin";
 
+        let lastRequestCount = 0;
+
         function checkAuth() {
             const login = document.getElementById('login-input').value;
             const password = document.getElementById('password-input').value;
@@ -191,7 +252,9 @@
                 document.getElementById('auth-panel').style.display = 'none';
                 document.getElementById('requests-container').style.display = 'block';
                 document.getElementById('console-container').style.display = 'block';
+                document.getElementById('notification-bell').style.display = 'block';
                 loadRequests();
+                checkForNewRequests();
             } else {
                 alert('Неверный логин или пароль!');
             }
@@ -265,6 +328,7 @@
             localStorage.setItem('approvedRepos', JSON.stringify(approvedRepos));
 
             logToConsole(`Заявка ${index} одобрена! Репозиторий добавлен.`);
+            addNotification(`Заявка ${index} от ${request.login} одобрена.`);
             loadRequests();
         }
 
@@ -273,6 +337,7 @@
             requests[index].status = 'rejected';
             localStorage.setItem('requests', JSON.stringify(requests));
             logToConsole(`Заявка ${index} отклонена.`);
+            addNotification(`Заявка ${index} от ${requests[index].login} отклонена.`);
             loadRequests();
         }
 
@@ -282,14 +347,14 @@
             const logEntry = document.createElement('p');
             logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
             consoleOutput.appendChild(logEntry);
-            consoleOutput.scrollTop = consoleOutput.scrollHeight; // Прокрутка вниз
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
         }
 
         // Обработка команд из консоли
         document.getElementById('console-input').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 const command = this.value.trim();
-                this.value = ''; // Очищаем поле ввода
+                this.value = '';
 
                 const parts = command.split(' ');
                 if (parts.length !== 3 || parts[0] !== 'statement') {
@@ -316,16 +381,71 @@
             }
         });
 
+        // Уведомления
+        function addNotification(message) {
+            let notifications = JSON.parse(localStorage.getItem('notifications')) || [];
+            notifications.push({ message, date: new Date().toISOString() });
+            localStorage.setItem('notifications', JSON.stringify(notifications));
+            updateNotificationBell();
+        }
+
+        function updateNotificationBell() {
+            const notifications = JSON.parse(localStorage.getItem('notifications')) || [];
+            const bell = document.getElementById('notification-bell');
+            bell.setAttribute('data-count', notifications.length);
+            if (notifications.length > 0) {
+                bell.classList.add('has-notifications');
+            } else {
+                bell.classList.remove('has-notifications');
+            }
+
+            const notificationList = document.getElementById('notification-list');
+            notificationList.innerHTML = '';
+            notifications.forEach((notif, index) => {
+                const notifItem = document.createElement('div');
+                notifItem.className = 'notification-item';
+                notifItem.innerHTML = `
+                    <p>${notif.message}</p>
+                    <p style="font-size: 0.8em; color: #aaa;">${new Date(notif.date).toLocaleString()}</p>
+                `;
+                notificationList.appendChild(notifItem);
+            });
+        }
+
+        document.getElementById('notification-bell').addEventListener('click', function() {
+            const notificationList = document.getElementById('notification-list');
+            notificationList.style.display = notificationList.style.display === 'block' ? 'none' : 'block';
+            if (notificationList.style.display === 'block') {
+                localStorage.setItem('notifications', JSON.stringify([])); // Очищаем уведомления после просмотра
+                updateNotificationBell();
+            }
+        });
+
+        function checkForNewRequests() {
+            const requests = JSON.parse(localStorage.getItem('requests')) || [];
+            if (requests.length > lastRequestCount) {
+                const newRequests = requests.slice(lastRequestCount);
+                newRequests.forEach((request, index) => {
+                    addNotification(`Новая заявка ${lastRequestCount + index} от ${request.login}`);
+                });
+            }
+            lastRequestCount = requests.length;
+            setTimeout(checkForNewRequests, 5000); // Проверяем каждые 5 секунд
+        }
+
         window.onload = function() {
             if (sessionStorage.getItem('adminAccess') === 'true') {
                 document.getElementById('auth-panel').style.display = 'none';
                 document.getElementById('requests-container').style.display = 'block';
                 document.getElementById('console-container').style.display = 'block';
+                document.getElementById('notification-bell').style.display = 'block';
                 loadRequests();
+                checkForNewRequests();
             } else {
                 document.getElementById('auth-panel').style.display = 'block';
                 document.getElementById('requests-container').style.display = 'none';
                 document.getElementById('console-container').style.display = 'none';
+                document.getElementById('notification-bell').style.display = 'none';
             }
         };
     </script>
