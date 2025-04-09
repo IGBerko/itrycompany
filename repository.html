@@ -199,8 +199,9 @@
     <div id="request-modal">
         <h3>Оставить заявку</h3>
         <input type="text" id="request-login" readonly>
-        <input type="text" id="request-repo" placeholder="Название репозитория">
-        <input type="text" id="request-repo-url" placeholder="URL репозитория (например, https://api.github.com/repos/owner/repo/releases)">
+        <input type="text" id="request-repo" placeholder="Название репозитория (например, ShahtJa)">
+        <input type="text" id="request-repo-url" placeholder="URL релиза (например, https://github.com/IGBerko/ShahtJa/releases/tag/1.0)">
+        <input type="text" id="request-filename" placeholder="Имя файла (например, ShahtJa-1.0.jar)">
         <textarea id="request-text" placeholder="Описание заявки"></textarea>
         <select id="request-department">
             <option value="Отдел заявок">Отдел заявок</option>
@@ -211,7 +212,7 @@
     </div>
 
     <script>
-        async function loadRepositories() {
+        function loadRepositories() {
             let users = JSON.parse(localStorage.getItem('approvedRepos')) || [];
 
             const repoContainer = document.getElementById('repo-container');
@@ -236,47 +237,19 @@
                     repoItem.dataset.repo = repo.name.toLowerCase();
                     repoItem.innerHTML = `<h3>${repo.name}</h3>`;
 
-                    try {
-                        const response = await fetch(repo.url);
-                        if (!response.ok) throw new Error('API error');
-                        const releases = await response.json();
+                    const releaseItem = document.createElement('div');
+                    releaseItem.className = 'release-item';
 
-                        if (releases.length === 0) {
-                            repoItem.innerHTML += '<p>Релизов нет</p>';
-                        } else {
-                            releases.forEach(release => {
-                                if (release.assets && release.assets.length > 0) {
-                                    release.assets.forEach(asset => {
-                                        const releaseItem = document.createElement('div');
-                                        releaseItem.className = 'release-item';
+                    // Формируем ссылку на скачивание
+                    const downloadUrl = repo.downloadUrl;
+                    const filename = repo.filename;
+                    const tag = repo.tag;
 
-                                        // Используем browser_download_url, если он есть
-                                        let downloadUrl = asset.browser_download_url;
-                                        if (!downloadUrl) {
-                                            // Если browser_download_url отсутствует, формируем ссылку вручную
-                                            const repoPath = repo.url.match(/repos\/(.+?)\/releases/)[1]; // Извлекаем owner/repo
-                                            downloadUrl = `https://github.com/${repoPath}/releases/download/${release.tag_name}/${asset.name}`;
-                                        }
-
-                                        releaseItem.innerHTML = `
-                                            <span>${asset.name} (${release.tag_name})</span>
-                                            <a href="${downloadUrl}" download>Download</a>
-                                        `;
-                                        repoItem.appendChild(releaseItem);
-                                    });
-                                } else {
-                                    const releaseItem = document.createElement('div');
-                                    releaseItem.className = 'release-item';
-                                    releaseItem.innerHTML = `<span>${release.tag_name}</span><span>Файлов для скачивания нет</span>`;
-                                    repoItem.appendChild(releaseItem);
-                                }
-                            });
-                        }
-                    } catch (error) {
-                        console.error(`Error loading releases for ${repo.name}:`, error);
-                        repoItem.innerHTML += '<p>Ошибка загрузки релизов</p>';
-                    }
-
+                    releaseItem.innerHTML = `
+                        <span>${filename} (${tag})</span>
+                        <a href="${downloadUrl}" download>Download</a>
+                    `;
+                    repoItem.appendChild(releaseItem);
                     repoList.appendChild(repoItem);
                 }
 
@@ -334,31 +307,47 @@
             document.getElementById('request-modal').style.display = 'none';
         }
 
-        async function submitRequest() {
+        function submitRequest() {
             const login = document.getElementById('request-login').value;
             const repoName = document.getElementById('request-repo').value.trim();
             const repoUrl = document.getElementById('request-repo-url').value.trim();
+            const filename = document.getElementById('request-filename').value.trim();
             const text = document.getElementById('request-text').value.trim();
             const department = document.getElementById('request-department').value;
 
-            if (!repoName || !repoUrl || !text) {
+            if (!repoName || !repoUrl || !filename || !text) {
                 alert('Заполните все поля!');
                 return;
             }
 
-            // Проверка валидности URL
-            try {
-                const response = await fetch(repoUrl);
-                if (!response.ok) throw new Error('Invalid URL');
-            } catch (error) {
-                alert('Неверный URL репозитория! Убедитесь, что он доступен и имеет правильный формат (например, https://api.github.com/repos/owner/repo/releases).');
+            // Проверка формата URL
+            const urlPattern = /^https:\/\/github\.com\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-]+\/releases\/tag\/.+$/;
+            if (!urlPattern.test(repoUrl)) {
+                alert('Неверный формат URL! Используйте формат: https://github.com/owner/repo/releases/tag/tag_name (например, https://github.com/IGBerko/ShahtJa/releases/tag/1.0).');
                 return;
             }
+
+            // Извлекаем owner, repo и tag из URL
+            const urlParts = repoUrl.match(/github\.com\/([a-zA-Z0-9-]+)\/([a-zA-Z0-9-]+)\/releases\/tag\/(.+)/);
+            if (!urlParts) {
+                alert('Не удалось извлечь данные из URL. Проверьте формат.');
+                return;
+            }
+
+            const owner = urlParts[1];
+            const repo = urlParts[2];
+            const tag = urlParts[3];
+
+            // Формируем ссылку на скачивание
+            const downloadUrl = `https://github.com/${owner}/${repo}/releases/download/${tag}/${filename}`;
 
             const request = {
                 login: login,
                 repoName: repoName,
                 repoUrl: repoUrl,
+                filename: filename,
+                tag: tag,
+                downloadUrl: downloadUrl,
                 text: text,
                 department: department,
                 date: new Date().toISOString(),
@@ -372,6 +361,7 @@
             alert('Заявка отправлена на рассмотрение!');
             document.getElementById('request-repo').value = '';
             document.getElementById('request-repo-url').value = '';
+            document.getElementById('request-filename').value = '';
             document.getElementById('request-text').value = '';
             closeRequestModal();
         }
