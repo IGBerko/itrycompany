@@ -142,15 +142,19 @@
             width: 300px;
         }
 
+        #request-modal input,
         #request-modal textarea {
             width: 100%;
-            height: 100px;
             background: #1a0933;
             border: 1px solid #33caff;
             color: white;
             padding: 10px;
             border-radius: 5px;
             margin-bottom: 10px;
+        }
+
+        #request-modal textarea {
+            height: 100px;
         }
 
         #request-modal select {
@@ -190,11 +194,14 @@
         <input type="text" id="search-input" placeholder="Поиск по никнеймам или репозиториям">
     </div>
     <div class="repo-container" id="repo-container"></div>
-    <a href="#" class="forum-link" onclick="openRequestModal()">Оставить заявку</a>
+    <a href="#" class="forum-link" onclick="checkUserAndOpenModal()">Оставить заявку</a>
 
     <div id="request-modal">
         <h3>Оставить заявку</h3>
-        <textarea id="request-text" placeholder="Текст заявки"></textarea>
+        <input type="text" id="request-login" readonly>
+        <input type="text" id="request-repo" placeholder="Название репозитория">
+        <input type="text" id="request-repo-url" placeholder="URL репозитория">
+        <textarea id="request-text" placeholder="Описание заявки"></textarea>
         <select id="request-department">
             <option value="Отдел заявок">Отдел заявок</option>
             <option value="Отдел репозитория">Отдел репозитория</option>
@@ -205,7 +212,7 @@
 
     <script>
         async function loadRepositories() {
-            const users = [
+            let users = JSON.parse(localStorage.getItem('approvedRepos')) || [
                 {
                     nickname: "IGBerko",
                     repos: [
@@ -215,7 +222,6 @@
                 }
             ];
 
-            // Запасной вариант, если API не работает
             const fallbackData = [
                 {
                     nickname: "IGBerko",
@@ -331,7 +337,14 @@
             });
         }
 
-        function openRequestModal() {
+        function checkUserAndOpenModal() {
+            const currentUser = localStorage.getItem('currentUser');
+            if (!currentUser) {
+                alert('Пожалуйста, зарегистрируйтесь, чтобы оставить заявку!');
+                window.location.href = 'register.html';
+                return;
+            }
+            document.getElementById('request-login').value = currentUser;
             document.getElementById('request-modal').style.display = 'block';
         }
 
@@ -340,25 +353,34 @@
         }
 
         function submitRequest() {
-            const text = document.getElementById('request-text').value;
+            const login = document.getElementById('request-login').value;
+            const repoName = document.getElementById('request-repo').value.trim();
+            const repoUrl = document.getElementById('request-repo-url').value.trim();
+            const text = document.getElementById('request-text').value.trim();
             const department = document.getElementById('request-department').value;
 
-            if (text.trim() === '') {
-                alert('Введите текст заявки!');
+            if (!repoName || !repoUrl || !text) {
+                alert('Заполните все поля!');
                 return;
             }
 
             const request = {
+                login: login,
+                repoName: repoName,
+                repoUrl: repoUrl,
                 text: text,
                 department: department,
-                date: new Date().toISOString()
+                date: new Date().toISOString(),
+                status: 'pending' // Статус заявки: pending, approved, rejected
             };
 
             let requests = JSON.parse(localStorage.getItem('requests')) || [];
             requests.push(request);
             localStorage.setItem('requests', JSON.stringify(requests));
 
-            alert('Заявка отправлена!');
+            alert('Заявка отправлена на рассмотрение!');
+            document.getElementById('request-repo').value = '';
+            document.getElementById('request-repo-url').value = '';
             document.getElementById('request-text').value = '';
             closeRequestModal();
         }
