@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Itry - Repository</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background: linear-gradient(135deg, #1a0933, #3b1a66, #2e1a4d);
+            min-height: 100vh;
+            color: white;
+            padding: 40px;
+        }
+
+        h1 {
+            font-size: 3.5em;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            animation: glow 2s ease-in-out infinite alternate;
+            background: linear-gradient(45deg, #ff5733, #33caff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+
+        .repo-container {
+            margin-top: 40px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .user-folder {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .user-folder:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .user-folder h2 {
+            color: #33caff;
+            font-size: 1.5em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-folder h2::after {
+            content: '▼';
+            font-size: 0.8em;
+        }
+
+        .user-folder.active h2::after {
+            content: '▲';
+        }
+
+        .repo-list {
+            display: none;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .repo-item {
+            margin-bottom: 15px;
+        }
+
+        .repo-item h3 {
+            color: #ff5733;
+            font-size: 1.2em;
+        }
+
+        .release-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .release-item a {
+            color: #33caff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 10px #fff, 0 0 20px #ff5733, 0 0 30px #33caff;
+            }
+            to {
+                text-shadow: 0 0 20px #fff, 0 0 30px #ff5733, 0 0 40px #33caff;
+            }
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+    </style>
+</head>
+<body>
+    <h1>Itry - Repository</h1>
+    <div class="repo-container" id="repo-container"></div>
+
+    <script>
+        async function loadRepositories() {
+            // Список пользователей и их репозиториев
+            const users = [
+                {
+                    nickname: "IGBerko",
+                    repos: [
+                        { name: "ShahtJa", url: "https://api.github.com/repos/IGBerko/ShahtJa/releases" },
+                        { name: "JarImporter", url: "https://api.github.com/repos/IGBerko/net.shaft.jar.JarImporter/releases" }
+                    ]
+                },
+                // Добавь других пользователей команды shaft сюда
+                // Например:
+                // {
+                //     nickname: "AnotherUser",
+                //     repos: [
+                //         { name: "AnotherProject", url: "https://api.github.com/repos/AnotherUser/AnotherProject/releases" }
+                //     ]
+                // }
+            ];
+
+            const repoContainer = document.getElementById('repo-container');
+
+            for (const user of users) {
+                const userFolder = document.createElement('div');
+                userFolder.className = 'user-folder';
+                userFolder.innerHTML = `<h2>${user.nickname}</h2>`;
+                const repoList = document.createElement('div');
+                repoList.className = 'repo-list';
+
+                for (const repo of user.repos) {
+                    try {
+                        const response = await fetch(repo.url);
+                        const releases = await response.json();
+
+                        const repoItem = document.createElement('div');
+                        repoItem.className = 'repo-item';
+                        repoItem.innerHTML = `<h3>${repo.name}</h3>`;
+
+                        releases.forEach(release => {
+                            release.assets.forEach(asset => {
+                                const releaseItem = document.createElement('div');
+                                releaseItem.className = 'release-item';
+                                releaseItem.innerHTML = `
+                                    <span>${asset.name} (${release.tag_name})</span>
+                                    <a href="${asset.browser_download_url}" download>Download</a>
+                                `;
+                                repoItem.appendChild(releaseItem);
+                            });
+                        });
+
+                        repoList.appendChild(repoItem);
+                    } catch (error) {
+                        console.error(`Error loading releases for ${repo.name}:`, error);
+                        const repoItem = document.createElement('div');
+                        repoItem.className = 'repo-item';
+                        repoItem.innerHTML = `<h3>${repo.name}</h3><p>Ошибка загрузки релизов</p>`;
+                        repoList.appendChild(repoItem);
+                    }
+                }
+
+                userFolder.appendChild(repoList);
+                repoContainer.appendChild(userFolder);
+
+                // Обработчик клика для раскрытия
+                userFolder.addEventListener('click', function() {
+                    const isActive = this.classList.contains('active');
+                    document.querySelectorAll('.user-folder').forEach(folder => {
+                        folder.classList.remove('active');
+                        folder.querySelector('.repo-list').style.display = 'none';
+                    });
+                    if (!isActive) {
+                        this.classList.add('active');
+                        this.querySelector('.repo-list').style.display = 'block';
+                    }
+                });
+            }
+        }
+
+        window.onload = loadRepositories;
+    </script>
+</body>
+</html>
