@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Itry - Регистрация</title>
+    <title>Itry - Register</title>
     <style>
         * {
             margin: 0;
@@ -16,8 +16,10 @@
             background: linear-gradient(135deg, #1a0933, #3b1a66, #2e1a4d);
             min-height: 100vh;
             color: white;
-            padding: 40px;
-            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
         }
 
         h1 {
@@ -28,47 +30,46 @@
             background: linear-gradient(45deg, #ff5733, #33caff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            text-align: center;
+            margin-bottom: 20px;
         }
 
-        .register-form {
-            margin-top: 40px;
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
+        .register-container {
             background: #2e1a4d;
-            padding: 20px;
+            padding: 30px;
             border-radius: 10px;
             box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
         }
 
-        .register-form input {
+        .register-container input {
+            width: 100%;
             padding: 10px;
             margin: 10px 0;
-            width: 100%;
             background: #1a0933;
             border: 1px solid #33caff;
             color: white;
             border-radius: 5px;
+            font-family: 'Roboto Mono', monospace;
         }
 
-        .register-form button {
+        .register-container button {
             padding: 10px 20px;
             background: #ff5733;
             border: none;
             color: white;
             border-radius: 5px;
             cursor: pointer;
+            margin-top: 10px;
         }
 
-        a {
+        .register-container a {
             color: #33caff;
             text-decoration: none;
-            margin-top: 20px;
-            display: inline-block;
-        }
-
-        a:hover {
-            color: #ff5733;
+            display: block;
+            margin-top: 10px;
         }
 
         @keyframes glow {
@@ -80,21 +81,21 @@
     </style>
 </head>
 <body>
-    <h1>Itry - Регистрация</h1>
-    <div class="register-form">
-        <input type="text" id="register-login" placeholder="Логин">
-        <input type="password" id="register-password" placeholder="Пароль">
-        <button onclick="registerUser()">Зарегистрироваться</button>
+    <div class="register-container">
+        <h1>Itry - Register</h1>
+        <input type="text" id="login" placeholder="Логин">
+        <input type="password" id="password" placeholder="Пароль">
+        <button onclick="register()">Зарегистрироваться</button>
+        <a href="login.html">Уже есть аккаунт? Войти</a>
     </div>
-    <a href="index.html">На главную</a>
 
     <script>
-        function registerUser() {
-            const login = document.getElementById('register-login').value.trim();
-            const password = document.getElementById('register-password').value.trim();
+        function register() {
+            const login = document.getElementById('login').value.trim();
+            const password = document.getElementById('password').value.trim();
 
             if (!login || !password) {
-                alert('Введите логин и пароль!');
+                alert('Заполните все поля!');
                 return;
             }
 
@@ -104,11 +105,10 @@
                 return;
             }
 
-            users.push({ login, password });
+            users.push({ login, password, role: 'user' }); // Добавляем роль user по умолчанию
             localStorage.setItem('users', JSON.stringify(users));
-            localStorage.setItem('currentUser', login);
-            alert('Регистрация успешна! Теперь вы можете оставить заявку.');
-            window.location.href = 'repository.html';
+            alert('Регистрация успешна! Теперь вы можете войти.');
+            window.location.href = 'login.html';
         }
     </script>
 </body>
