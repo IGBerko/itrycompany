@@ -278,6 +278,9 @@
                     <p><span>Пользователь:</span> ${request.login || 'Не указано'}</p>
                     <p><span>Репозиторий:</span> ${request.repoName || 'Не указано'}</p>
                     <p><span>URL:</span> ${request.repoUrl || 'Не указано'}</p>
+                    <p><span>Имя файла:</span> ${request.filename || 'Не указано'}</p>
+                    <p><span>Тег:</span> ${request.tag || 'Не указано'}</p>
+                    <p><span>Ссылка на скачивание:</span> ${request.downloadUrl || 'Не указано'}</p>
                     <p><span>Описание:</span> ${request.text || 'Не указано'}</p>
                     <p><span>Отдел:</span> ${request.department || 'Не указано'}</p>
                     <p><span>Дата:</span> ${request.date ? new Date(request.date).toLocaleString() : 'Не указано'}</p>
@@ -324,7 +327,12 @@
                 approvedRepos.push({ nickname: request.login, repos: [] });
                 userExists = approvedRepos.find(user => user.nickname === request.login);
             }
-            userExists.repos.push({ name: request.repoName, url: request.repoUrl });
+            userExists.repos.push({
+                name: request.repoName,
+                downloadUrl: request.downloadUrl,
+                filename: request.filename,
+                tag: request.tag
+            });
             localStorage.setItem('approvedRepos', JSON.stringify(approvedRepos));
 
             logToConsole(`Заявка ${index} одобрена! Репозиторий добавлен.`);
