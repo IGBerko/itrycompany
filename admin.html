@@ -85,6 +85,24 @@
             color: #33caff;
         }
 
+        .request-item button {
+            padding: 5px 10px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .approve-btn {
+            background: #33caff;
+            color: white;
+        }
+
+        .reject-btn {
+            background: #ff5733;
+            color: white;
+        }
+
         @keyframes glow {
             from { text-shadow: 0 0 10px #fff, 0 0 20px #ff5733, 0 0 30px #33caff; }
             to { text-shadow: 0 0 20px #fff, 0 0 30px #ff5733, 0 0 40px #33caff; }
@@ -135,12 +153,61 @@
                 const requestItem = document.createElement('div');
                 requestItem.className = 'request-item';
                 requestItem.innerHTML = `
+                    <p><span>Пользователь:</span> ${request.login}</p>
+                    <p><span>Репозиторий:</span> ${request.repoName}</p>
+                    <p><span>URL:</span> ${request.repoUrl}</p>
+                    <p><span>Описание:</span> ${request.text}</p>
                     <p><span>Отдел:</span> ${request.department}</p>
-                    <p><span>Текст:</span> ${request.text}</p>
                     <p><span>Дата:</span> ${new Date(request.date).toLocaleString()}</p>
+                    <p><span>Статус:</span> ${request.status}</p>
                 `;
+
+                if (request.status === 'pending') {
+                    const approveBtn = document.createElement('button');
+                    approveBtn.className = 'approve-btn';
+                    approveBtn.textContent = 'Одобрить';
+                    approveBtn.onclick = () => approveRequest(index);
+
+                    const rejectBtn = document.createElement('button');
+                    rejectBtn.className = 'reject-btn';
+                    rejectBtn.textContent = 'Отклонить';
+                    rejectBtn.onclick = () => rejectRequest(index);
+
+                    requestItem.appendChild(approveBtn);
+                    requestItem.appendChild(rejectBtn);
+                }
+
                 container.appendChild(requestItem);
             });
+        }
+
+        function approveRequest(index) {
+            let requests = JSON.parse(localStorage.getItem('requests')) || [];
+            const request = requests[index];
+            request.status = 'approved';
+            requests[index] = request;
+            localStorage.setItem('requests', JSON.stringify(requests));
+
+            // Добавляем репозиторий в список одобренных
+            let approvedRepos = JSON.parse(localStorage.getItem('approvedRepos')) || [];
+            let userExists = approvedRepos.find(user => user.nickname === request.login);
+            if (!userExists) {
+                approvedRepos.push({ nickname: request.login, repos: [] });
+                userExists = approvedRepos.find(user => user.nickname === request.login);
+            }
+            userExists.repos.push({ name: request.repoName, url: request.repoUrl });
+            localStorage.setItem('approvedRepos', JSON.stringify(approvedRepos));
+
+            alert('Заявка одобрена! Репозиторий добавлен.');
+            loadRequests();
+        }
+
+        function rejectRequest(index) {
+            let requests = JSON.parse(localStorage.getItem('requests')) || [];
+            requests[index].status = 'rejected';
+            localStorage.setItem('requests', JSON.stringify(requests));
+            alert('Заявка отклонена.');
+            loadRequests();
         }
 
         window.onload = function() {
