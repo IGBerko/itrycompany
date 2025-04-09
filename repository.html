@@ -249,12 +249,26 @@
                                     release.assets.forEach(asset => {
                                         const releaseItem = document.createElement('div');
                                         releaseItem.className = 'release-item';
+
+                                        // Используем browser_download_url, если он есть
+                                        let downloadUrl = asset.browser_download_url;
+                                        if (!downloadUrl) {
+                                            // Если browser_download_url отсутствует, формируем ссылку вручную
+                                            const repoPath = repo.url.match(/repos\/(.+?)\/releases/)[1]; // Извлекаем owner/repo
+                                            downloadUrl = `https://github.com/${repoPath}/releases/download/${release.tag_name}/${asset.name}`;
+                                        }
+
                                         releaseItem.innerHTML = `
                                             <span>${asset.name} (${release.tag_name})</span>
-                                            <a href="${asset.browser_download_url}" download>Download</a>
+                                            <a href="${downloadUrl}" download>Download</a>
                                         `;
                                         repoItem.appendChild(releaseItem);
                                     });
+                                } else {
+                                    const releaseItem = document.createElement('div');
+                                    releaseItem.className = 'release-item';
+                                    releaseItem.innerHTML = `<span>${release.tag_name}</span><span>Файлов для скачивания нет</span>`;
+                                    repoItem.appendChild(releaseItem);
                                 }
                             });
                         }
