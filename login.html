@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Itry - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background: linear-gradient(135deg, #1a0933, #3b1a66, #2e1a4d);
+            min-height: 100vh;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 3.5em;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            animation: glow 2s ease-in-out infinite alternate;
+            background: linear-gradient(45deg, #ff5733, #33caff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .login-container {
+            background: #2e1a4d;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-container input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background: #1a0933;
+            border: 1px solid #33caff;
+            color: white;
+            border-radius: 5px;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        .login-container button {
+            padding: 10px 20px;
+            background: #ff5733;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .login-container a {
+            color: #33caff;
+            text-decoration: none;
+            display: block;
+            margin-top: 10px;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 10px #fff, 0 0 20px #ff5733, 0 0 30px #33caff; }
+            to { text-shadow: 0 0 20px #fff, 0 0 30px #ff5733, 0 0 40px #33caff; }
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>Itry - Login</h1>
+        <input type="text" id="login" placeholder="Логин">
+        <input type="password" id="password" placeholder="Пароль">
+        <button onclick="login()">Войти</button>
+        <a href="register.html">Нет аккаунта? Зарегистрироваться</a>
+    </div>
+
+    <script>
+        function login() {
+            const login = document.getElementById('login').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            if (!login || !password) {
+                alert('Заполните все поля!');
+                return;
+            }
+
+            let users = JSON.parse(localStorage.getItem('users')) || [];
+            const user = users.find(user => user.login === login && user.password === password);
+
+            if (!user) {
+                alert('Неверный логин или пароль!');
+                return;
+            }
+
+            localStorage.setItem('currentUser', login);
+            localStorage.setItem('currentUserRole', user.role); // Сохраняем роль текущего пользователя
+            alert('Вход успешен!');
+            window.location.href = 'repository.html';
+        }
+    </script>
+</body>
+</html>
