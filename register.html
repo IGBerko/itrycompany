@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Itry - Регистрация</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background: linear-gradient(135deg, #1a0933, #3b1a66, #2e1a4d);
+            min-height: 100vh;
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 3.5em;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            animation: glow 2s ease-in-out infinite alternate;
+            background: linear-gradient(45deg, #ff5733, #33caff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .register-form {
+            margin-top: 40px;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            background: #2e1a4d;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+        }
+
+        .register-form input {
+            padding: 10px;
+            margin: 10px 0;
+            width: 100%;
+            background: #1a0933;
+            border: 1px solid #33caff;
+            color: white;
+            border-radius: 5px;
+        }
+
+        .register-form button {
+            padding: 10px 20px;
+            background: #ff5733;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        a {
+            color: #33caff;
+            text-decoration: none;
+            margin-top: 20px;
+            display: inline-block;
+        }
+
+        a:hover {
+            color: #ff5733;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 10px #fff, 0 0 20px #ff5733, 0 0 30px #33caff; }
+            to { text-shadow: 0 0 20px #fff, 0 0 30px #ff5733, 0 0 40px #33caff; }
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+    </style>
+</head>
+<body>
+    <h1>Itry - Регистрация</h1>
+    <div class="register-form">
+        <input type="text" id="register-login" placeholder="Логин">
+        <input type="password" id="register-password" placeholder="Пароль">
+        <button onclick="registerUser()">Зарегистрироваться</button>
+    </div>
+    <a href="index.html">На главную</a>
+
+    <script>
+        function registerUser() {
+            const login = document.getElementById('register-login').value.trim();
+            const password = document.getElementById('register-password').value.trim();
+
+            if (!login || !password) {
+                alert('Введите логин и пароль!');
+                return;
+            }
+
+            let users = JSON.parse(localStorage.getItem('users')) || [];
+            if (users.some(user => user.login === login)) {
+                alert('Пользователь с таким логином уже существует!');
+                return;
+            }
+
+            users.push({ login, password });
+            localStorage.setItem('users', JSON.stringify(users));
+            localStorage.setItem('currentUser', login);
+            alert('Регистрация успешна! Теперь вы можете оставить заявку.');
+            window.location.href = 'repository.html';
+        }
+    </script>
+</body>
+</html>
