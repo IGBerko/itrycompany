@@ -30,8 +30,25 @@
             text-align: center;
         }
 
+        .search-container {
+            margin: 20px auto;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        #search-input {
+            padding: 10px;
+            width: 100%;
+            max-width: 400px;
+            background: #1a0933;
+            border: 1px solid #33caff;
+            color: white;
+            border-radius: 5px;
+            font-family: 'Roboto Mono', monospace;
+        }
+
         .repo-container {
-            margin-top: 40px;
+            margin-top: 20px;
             max-width: 800px;
             margin-left: auto;
             margin-right: auto;
@@ -98,13 +115,13 @@
             font-weight: bold;
         }
 
+        .hidden {
+            display: none;
+        }
+
         @keyframes glow {
-            from {
-                text-shadow: 0 0 10px #fff, 0 0 20px #ff5733, 0 0 30px #33caff;
-            }
-            to {
-                text-shadow: 0 0 20px #fff, 0 0 30px #ff5733, 0 0 40px #33caff;
-            }
+            from { text-shadow: 0 0 10px #fff, 0 0 20px #ff5733, 0 0 30px #33caff; }
+            to { text-shadow: 0 0 20px #fff, 0 0 30px #ff5733, 0 0 40px #33caff; }
         }
 
         @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
@@ -112,11 +129,13 @@
 </head>
 <body>
     <h1>Itry - Repository</h1>
+    <div class="search-container">
+        <input type="text" id="search-input" placeholder="Поиск по никнеймам или репозиториям">
+    </div>
     <div class="repo-container" id="repo-container"></div>
 
     <script>
         async function loadRepositories() {
-            // Список пользователей и их репозиториев
             const users = [
                 {
                     nickname: "IGBerko",
@@ -124,22 +143,17 @@
                         { name: "ShahtJa", url: "https://api.github.com/repos/IGBerko/ShahtJa/releases" },
                         { name: "JarImporter", url: "https://api.github.com/repos/IGBerko/net.shaft.jar.JarImporter/releases" }
                     ]
-                },
+                }
                 // Добавь других пользователей команды shaft сюда
-                // Например:
-                // {
-                //     nickname: "AnotherUser",
-                //     repos: [
-                //         { name: "AnotherProject", url: "https://api.github.com/repos/AnotherUser/AnotherProject/releases" }
-                //     ]
-                // }
             ];
 
             const repoContainer = document.getElementById('repo-container');
+            repoContainer.innerHTML = '';
 
             for (const user of users) {
                 const userFolder = document.createElement('div');
                 userFolder.className = 'user-folder';
+                userFolder.dataset.nickname = user.nickname.toLowerCase();
                 userFolder.innerHTML = `<h2>${user.nickname}</h2>`;
                 const repoList = document.createElement('div');
                 repoList.className = 'repo-list';
@@ -151,6 +165,7 @@
 
                         const repoItem = document.createElement('div');
                         repoItem.className = 'repo-item';
+                        repoItem.dataset.repo = repo.name.toLowerCase();
                         repoItem.innerHTML = `<h3>${repo.name}</h3>`;
 
                         releases.forEach(release => {
@@ -178,20 +193,46 @@
                 userFolder.appendChild(repoList);
                 repoContainer.appendChild(userFolder);
 
-                // Обработчик клика для раскрытия
-                userFolder.addEventListener('click', function() {
-                    const isActive = this.classList.contains('active');
-                    document.querySelectorAll('.user-folder').forEach(folder => {
-                        folder.classList.remove('active');
-                        folder.querySelector('.repo-list').style.display = 'none';
-                    });
-                    if (!isActive) {
-                        this.classList.add('active');
-                        this.querySelector('.repo-list').style.display = 'block';
+                userFolder.addEventListener('click', function(e) {
+                    if (e.target.tagName !== 'A') {
+                        const isActive = this.classList.contains('active');
+                        document.querySelectorAll('.user-folder').forEach(folder => {
+                            folder.classList.remove('active');
+                            folder.querySelector('.repo-list').style.display = 'none';
+                        });
+                        if (!isActive) {
+                            this.classList.add('active');
+                            this.querySelector('.repo-list').style.display = 'block';
+                        }
                     }
                 });
             }
+
+            // Поиск
+            document.getElementById('search-input').addEventListener('input', function() {
+                const query = this.value.toLowerCase();
+                document.querySelectorAll('.user-folder').forEach(folder => {
+                    const nickname = folder.dataset.nickname;
+                    const repos = folder.querySelectorAll('.repo-item');
+                    let hasMatch = nickname.includes(query);
+
+                    repos.forEach(repo => {
+                        const repoName = repo.dataset.repo;
+                        if (repoName.includes(query)) {
+                            hasMatch = true;
+                        }
+                        repo.classList.toggle('hidden', !repoName.includes(query) && !nickname.includes(query));
+                    });
+
+                    folder.classList.toggle('hidden', !hasMatch);
+                });
+            });
         }
+
+        window.onload = loadRepositories;
+    </script>
+</body>
+</html>
 
         window.onload = loadRepositories;
     </script>
