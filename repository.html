@@ -200,7 +200,7 @@
         <h3>Оставить заявку</h3>
         <input type="text" id="request-login" readonly>
         <input type="text" id="request-repo" placeholder="Название репозитория">
-        <input type="text" id="request-repo-url" placeholder="URL репозитория">
+        <input type="text" id="request-repo-url" placeholder="URL репозитория (например, https://api.github.com/repos/owner/repo/releases)">
         <textarea id="request-text" placeholder="Описание заявки"></textarea>
         <select id="request-department">
             <option value="Отдел заявок">Отдел заявок</option>
@@ -212,62 +212,17 @@
 
     <script>
         async function loadRepositories() {
-            let users = JSON.parse(localStorage.getItem('approvedRepos')) || [
-                {
-                    nickname: "IGBerko",
-                    repos: [
-                        { name: "ShahtJa", url: "https://api.github.com/repos/IGBerko/ShahtJa/releases" },
-                        { name: "JarImporter", url: "https://api.github.com/repos/IGBerko/net.shaft.jar.JarImporter/releases" }
-                    ]
-                }
-            ];
-
-            const fallbackData = [
-                {
-                    nickname: "IGBerko",
-                    repos: [
-                        {
-                            name: "ShahtJa",
-                            releases: [
-                                { name: "ShahtJa v1.0", tag: "v1.0", url: "https://github.com/IGBerko/ShahtJa/releases/download/v1.0/net.shaft.framework.ShahtJa.jar" }
-                            ]
-                        },
-                        {
-                            name: "JarImporter",
-                            releases: [
-                                { name: "JarImporter v1.0", tag: "v1.0", url: "https://github.com/IGBerko/net.shaft.jar.JarImporter/releases/download/v1.0/net.shaft.jar.JarImporter.jar" }
-                            ]
-                        }
-                    ]
-                }
-            ];
+            let users = JSON.parse(localStorage.getItem('approvedRepos')) || [];
 
             const repoContainer = document.getElementById('repo-container');
             repoContainer.innerHTML = '';
 
-            let dataToUse = [];
-
-            try {
-                for (const user of users) {
-                    const userData = { nickname: user.nickname, repos: [] };
-                    for (const repo of user.repos) {
-                        const response = await fetch(repo.url);
-                        if (!response.ok) throw new Error('API error');
-                        const releases = await response.json();
-                        userData.repos.push({ name: repo.name, releases: releases.map(r => ({
-                            name: r.assets[0]?.name || "Unknown",
-                            tag: r.tag_name,
-                            url: r.assets[0]?.browser_download_url || "#"
-                        })) });
-                    }
-                    dataToUse.push(userData);
-                }
-            } catch (error) {
-                console.error('Error loading repositories:', error);
-                dataToUse = fallbackData;
+            if (users.length === 0) {
+                repoContainer.innerHTML = '<p>Репозиториев пока нет</p>';
+                return;
             }
 
-            for (const user of dataToUse) {
+            for (const user of users) {
                 const userFolder = document.createElement('div');
                 userFolder.className = 'user-folder';
                 userFolder.dataset.nickname = user.nickname.toLowerCase();
@@ -281,18 +236,31 @@
                     repoItem.dataset.repo = repo.name.toLowerCase();
                     repoItem.innerHTML = `<h3>${repo.name}</h3>`;
 
-                    if (repo.releases.length === 0) {
-                        repoItem.innerHTML += '<p>Релизов нет</p>';
-                    } else {
-                        repo.releases.forEach(release => {
-                            const releaseItem = document.createElement('div');
-                            releaseItem.className = 'release-item';
-                            releaseItem.innerHTML = `
-                                <span>${release.name} (${release.tag})</span>
-                                <a href="${release.url}" download>Download</a>
-                            `;
-                            repoItem.appendChild(releaseItem);
-                        });
+                    try {
+                        const response = await fetch(repo.url);
+                        if (!response.ok) throw new Error('API error');
+                        const releases = await response.json();
+
+                        if (releases.length === 0) {
+                            repoItem.innerHTML += '<p>Релизов нет</p>';
+                        } else {
+                            releases.forEach(release => {
+                                if (release.assets && release.assets.length > 0) {
+                                    release.assets.forEach(asset => {
+                                        const releaseItem = document.createElement('div');
+                                        releaseItem.className = 'release-item';
+                                        releaseItem.innerHTML = `
+                                            <span>${asset.name} (${release.tag_name})</span>
+                                            <a href="${asset.browser_download_url}" download>Download</a>
+                                        `;
+                                        repoItem.appendChild(releaseItem);
+                                    });
+                                }
+                            });
+                        }
+                    } catch (error) {
+                        console.error(`Error loading releases for ${repo.name}:`, error);
+                        repoItem.innerHTML += '<p>Ошибка загрузки релизов</p>';
                     }
 
                     repoList.appendChild(repoItem);
@@ -352,7 +320,7 @@
             document.getElementById('request-modal').style.display = 'none';
         }
 
-        function submitRequest() {
+        async function submitRequest() {
             const login = document.getElementById('request-login').value;
             const repoName = document.getElementById('request-repo').value.trim();
             const repoUrl = document.getElementById('request-repo-url').value.trim();
@@ -364,6 +332,15 @@
                 return;
             }
 
+            // Проверка валидности URL
+            try {
+                const response = await fetch(repoUrl);
+                if (!response.ok) throw new Error('Invalid URL');
+            } catch (error) {
+                alert('Неверный URL репозитория! Убедитесь, что он доступен и имеет правильный формат (например, https://api.github.com/repos/owner/repo/releases).');
+                return;
+            }
+
             const request = {
                 login: login,
                 repoName: repoName,
@@ -371,7 +348,7 @@
                 text: text,
                 department: department,
                 date: new Date().toISOString(),
-                status: 'pending' // Статус заявки: pending, approved, rejected
+                status: 'pending'
             };
 
             let requests = JSON.parse(localStorage.getItem('requests')) || [];
