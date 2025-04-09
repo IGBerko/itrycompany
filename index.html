@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Itry - Downloads</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background: linear-gradient(135deg, #1a0933, #3b1a66, #2e1a4d);
+            min-height: 100vh;
+            color: white;
+            padding: 40px;
+        }
+
+        h1 {
+            font-size: 3.5em;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            animation: glow 2s ease-in-out infinite alternate;
+            background: linear-gradient(45deg, #ff5733, #33caff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+
+        .downloads-container {
+            margin-top: 40px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .asset-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.3s ease;
+        }
+
+        .asset-item:hover {
+            transform: scale(1.02);
+        }
+
+        .asset-item a {
+            color: #33caff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .admin-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #ff5733;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(255, 87, 51, 0.7);
+        }
+
+        .admin-panel button {
+            padding: 10px 20px;
+            background: transparent;
+            border: 2px solid white;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .admin-panel button:hover {
+            background: white;
+            color: #ff5733;
+        }
+
+        #upload-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #2e1a4d;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+        }
+
+        #upload-modal input[type="text"] {
+            margin: 10px 0;
+            padding: 5px;
+            width: 100%;
+            background: #1a0933;
+            border: 1px solid #33caff;
+            color: white;
+        }
+
+        #upload-modal button {
+            padding: 10px 20px;
+            background: #33caff;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 10px #fff, 0 0 20px #ff5733, 0 0 30px #33caff;
+            }
+            to {
+                text-shadow: 0 0 20px #fff, 0 0 30px #ff5733, 0 0 40px #33caff;
+            }
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+    </style>
+</head>
+<body>
+    <h1>Downloads</h1>
+    <div class="downloads-container" id="downloads-list"></div>
+
+    <div class="admin-panel">
+        <button onclick="openUploadModal()">Добавить файл</button>
+    </div>
+
+    <div id="upload-modal">
+        <h3>Добавить новый файл</h3>
+        <input type="text" id="file-name" placeholder="Название файла">
+        <input type="text" id="file-url" placeholder="URL файла">
+        <button onclick="uploadFile()">Добавить</button>
+        <button onclick="closeUploadModal()">Закрыть</button>
+    </div>
+
+    <script>
+        async function loadDependencies() {
+            try {
+                const response = await fetch('http://localhost:8080/api/shahtja/dependencies');
+                const dependencies = await response.json();
+                const downloadsList = document.getElementById('downloads-list');
+                downloadsList.innerHTML = '';
+
+                for (const [name, url] of Object.entries(dependencies)) {
+                    const asset = document.createElement('div');
+                    asset.className = 'asset-item';
+                    asset.innerHTML = `<span>${name}</span><a href="${url}" download>Download</a>`;
+                    downloadsList.appendChild(asset);
+                }
+            } catch (error) {
+                console.error('Error loading dependencies:', error);
+                const staticData = {
+                    "ShahtJa Framework Api v1.0": "https://github.com/IGBerko/ShahtJa/releases/download/1.0/net.shaft.framework.ShahtJa.jar",
+                    "ShahtJa Framework v1.0": "https://github.com/IGBerko/ShahtJa/releases/download/1.0/net.shaft.framework.ShahtJa.jar",
+                    "JarImporter v1.0": "https://github.com/IGBerko/net.shaft.jar.JarImporter/releases/download/1.0/net.shaft.jar.JarImporter.jar"
+                };
+                const downloadsList = document.getElementById('downloads-list');
+                for (const [name, url] of Object.entries(staticData)) {
+                    const asset = document.createElement('div');
+                    asset.className = 'asset-item';
+                    asset.innerHTML = `<span>${name}</span><a href="${url}" download>Download</a>`;
+                    downloadsList.appendChild(asset);
+                }
+            }
+        }
+
+        function openUploadModal() {
+            document.getElementById('upload-modal').style.display = 'block';
+        }
+
+        function closeUploadModal() {
+            document.getElementById('upload-modal').style.display = 'none';
+        }
+
+        async function uploadFile() {
+            const fileName = document.getElementById('file-name').value;
+            const fileUrl = document.getElementById('file-url').value;
+
+            if (fileName && fileUrl) {
+                try {
+                    await fetch('http://localhost:8080/api/shahtja/dependencies', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `name=${encodeURIComponent(fileName)}&url=${encodeURIComponent(fileUrl)}`
+                    });
+                    loadDependencies();
+                } catch (error) {
+                    console.error('Error uploading file:', error);
+                }
+                closeUploadModal();
+                document.getElementById('file-name').value = '';
+                document.getElementById('file-url').value = '';
+            } else {
+                alert('Введите название и URL файла!');
+            }
+        }
+
+        window.onload = loadDependencies;
+    </script>
+</body>
+</html>
