@@ -119,6 +119,42 @@
             background: #ff5733;
         }
 
+        .console-container {
+            margin-top: 40px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .console-input {
+            width: 100%;
+            padding: 10px;
+            background: #1a0933;
+            border: 1px solid #33caff;
+            color: white;
+            border-radius: 5px;
+            font-family: 'Roboto Mono', monospace;
+            margin-bottom: 10px;
+        }
+
+        .console-output {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #1a0933;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #33caff;
+        }
+
+        .console-output p {
+            margin: 5px 0;
+            color: #33caff;
+        }
+
         @keyframes glow {
             from { text-shadow: 0 0 10px #fff, 0 0 20px #ff5733, 0 0 30px #33caff; }
             to { text-shadow: 0 0 20px #fff, 0 0 30px #ff5733, 0 0 40px #33caff; }
@@ -136,6 +172,11 @@
         <button onclick="checkAuth()">Войти</button>
     </div>
     <div class="requests-container" id="requests-container"></div>
+    <div class="console-container" id="console-container">
+        <h3>Консоль</h3>
+        <input type="text" class="console-input" id="console-input" placeholder="Введите команду (например, statement 0 true)">
+        <div class="console-output" id="console-output"></div>
+    </div>
 
     <script>
         const CORRECT_LOGIN = "admin";
@@ -149,6 +190,7 @@
                 sessionStorage.setItem('adminAccess', 'true');
                 document.getElementById('auth-panel').style.display = 'none';
                 document.getElementById('requests-container').style.display = 'block';
+                document.getElementById('console-container').style.display = 'block';
                 loadRequests();
             } else {
                 alert('Неверный логин или пароль!');
@@ -169,6 +211,7 @@
                 const requestItem = document.createElement('div');
                 requestItem.className = 'request-item';
                 requestItem.innerHTML = `
+                    <p><span>ID:</span> ${index}</p>
                     <p><span>Пользователь:</span> ${request.login || 'Не указано'}</p>
                     <p><span>Репозиторий:</span> ${request.repoName || 'Не указано'}</p>
                     <p><span>URL:</span> ${request.repoUrl || 'Не указано'}</p>
@@ -185,7 +228,7 @@
                 container.appendChild(requestItem);
             });
 
-            // Добавляем обработчики для статуса
+            // Обработчики для статуса
             document.querySelectorAll('.status').forEach(status => {
                 status.addEventListener('click', function() {
                     const index = this.dataset.index;
@@ -221,7 +264,7 @@
             userExists.repos.push({ name: request.repoName, url: request.repoUrl });
             localStorage.setItem('approvedRepos', JSON.stringify(approvedRepos));
 
-            alert('Заявка одобрена! Репозиторий добавлен.');
+            logToConsole(`Заявка ${index} одобрена! Репозиторий добавлен.`);
             loadRequests();
         }
 
@@ -229,18 +272,60 @@
             let requests = JSON.parse(localStorage.getItem('requests')) || [];
             requests[index].status = 'rejected';
             localStorage.setItem('requests', JSON.stringify(requests));
-            alert('Заявка отклонена.');
+            logToConsole(`Заявка ${index} отклонена.`);
             loadRequests();
         }
+
+        // Функция для вывода сообщений в консоль
+        function logToConsole(message) {
+            const consoleOutput = document.getElementById('console-output');
+            const logEntry = document.createElement('p');
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            consoleOutput.appendChild(logEntry);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight; // Прокрутка вниз
+        }
+
+        // Обработка команд из консоли
+        document.getElementById('console-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const command = this.value.trim();
+                this.value = ''; // Очищаем поле ввода
+
+                const parts = command.split(' ');
+                if (parts.length !== 3 || parts[0] !== 'statement') {
+                    logToConsole('Неверная команда! Используйте: statement <id> true/false');
+                    return;
+                }
+
+                const id = parseInt(parts[1]);
+                const action = parts[2].toLowerCase();
+
+                const requests = JSON.parse(localStorage.getItem('requests')) || [];
+                if (isNaN(id) || id < 0 || id >= requests.length) {
+                    logToConsole(`Заявка с ID ${id} не найдена!`);
+                    return;
+                }
+
+                if (action === 'true') {
+                    approveRequest(id);
+                } else if (action === 'false') {
+                    rejectRequest(id);
+                } else {
+                    logToConsole('Неверное действие! Используйте true или false.');
+                }
+            }
+        });
 
         window.onload = function() {
             if (sessionStorage.getItem('adminAccess') === 'true') {
                 document.getElementById('auth-panel').style.display = 'none';
                 document.getElementById('requests-container').style.display = 'block';
+                document.getElementById('console-container').style.display = 'block';
                 loadRequests();
             } else {
                 document.getElementById('auth-panel').style.display = 'block';
                 document.getElementById('requests-container').style.display = 'none';
+                document.getElementById('console-container').style.display = 'none';
             }
         };
     </script>
