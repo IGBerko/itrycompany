@@ -233,31 +233,40 @@
     <div class="requests-container" id="requests-container"></div>
     <div class="console-container" id="console-container">
         <h3>Консоль</h3>
-        <input type="text" class="console-input" id="console-input" placeholder="Введите команду (например, statement 0 true)">
+        <input type="text" class="console-input" id="console-input" placeholder="Введите команду (например, statement 0 true или /grant user admin)">
         <div class="console-output" id="console-output"></div>
     </div>
 
     <script>
-        const CORRECT_LOGIN = "admin";
-        const CORRECT_PASSWORD = "admin";
-
-        let lastRequestCount = 0;
-
         function checkAuth() {
-            const login = document.getElementById('login-input').value;
-            const password = document.getElementById('password-input').value;
+            const login = document.getElementById('login-input').value.trim();
+            const password = document.getElementById('password-input').value.trim();
 
-            if (login === CORRECT_LOGIN && password === CORRECT_PASSWORD) {
-                sessionStorage.setItem('adminAccess', 'true');
-                document.getElementById('auth-panel').style.display = 'none';
-                document.getElementById('requests-container').style.display = 'block';
-                document.getElementById('console-container').style.display = 'block';
-                document.getElementById('notification-bell').style.display = 'block';
-                loadRequests();
-                checkForNewRequests();
-            } else {
-                alert('Неверный логин или пароль!');
+            if (!login || !password) {
+                alert('Заполните все поля!');
+                return;
             }
+
+            let users = JSON.parse(localStorage.getItem('users')) || [];
+            const user = users.find(user => user.login === login && user.password === password);
+
+            if (!user) {
+                alert('Неверный логин или пароль!');
+                return;
+            }
+
+            if (user.role !== 'admin') {
+                alert('У вас нет прав для входа в админ-панель! Обратитесь к администратору.');
+                return;
+            }
+
+            sessionStorage.setItem('adminAccess', 'true');
+            document.getElementById('auth-panel').style.display = 'none';
+            document.getElementById('requests-container').style.display = 'block';
+            document.getElementById('console-container').style.display = 'block';
+            document.getElementById('notification-bell').style.display = 'block';
+            loadRequests();
+            checkForNewRequests();
         }
 
         function loadRequests() {
@@ -294,7 +303,6 @@
                 container.appendChild(requestItem);
             });
 
-            // Обработчики для статуса
             document.querySelectorAll('.status').forEach(status => {
                 status.addEventListener('click', function() {
                     const index = this.dataset.index;
@@ -303,7 +311,6 @@
                 });
             });
 
-            // Закрываем выпадающий список при клике вне его
             document.addEventListener('click', function(e) {
                 if (!e.target.classList.contains('status')) {
                     document.querySelectorAll('.status-options').forEach(options => {
@@ -320,7 +327,6 @@
             requests[index] = request;
             localStorage.setItem('requests', JSON.stringify(requests));
 
-            // Добавляем репозиторий в список одобренных
             let approvedRepos = JSON.parse(localStorage.getItem('approvedRepos')) || [];
             let userExists = approvedRepos.find(user => user.nickname === request.login);
             if (!userExists) {
@@ -349,7 +355,6 @@
             loadRequests();
         }
 
-        // Функция для вывода сообщений в консоль
         function logToConsole(message) {
             const consoleOutput = document.getElementById('console-output');
             const logEntry = document.createElement('p');
@@ -358,13 +363,56 @@
             consoleOutput.scrollTop = consoleOutput.scrollHeight;
         }
 
-        // Обработка команд из консоли
+        function grantRole(username, role) {
+            let users = JSON.parse(localStorage.getItem('users')) || [];
+            const user = users.find(user => user.login === username);
+
+            if (!user) {
+                logToConsole(`Пользователь ${username} не найден!`);
+                return;
+            }
+
+            if (role !== 'admin' && role !== 'user') {
+                logToConsole('Неверная роль! Используйте admin или user.');
+                return;
+            }
+
+            user.role = role;
+            localStorage.setItem('users', JSON.stringify(users));
+            logToConsole(`Роль пользователя ${username} изменена на ${role}.`);
+
+            // Если текущий пользователь меняет свою роль, обновляем currentUserRole
+            const currentUser = localStorage.getItem('currentUser');
+            if (currentUser === username) {
+                localStorage.setItem('currentUserRole', role);
+                if (role !== 'admin') {
+                    sessionStorage.removeItem('adminAccess');
+                    window.location.reload(); // Перезагружаем страницу, чтобы выйти из админ-панели
+                }
+            }
+        }
+
         document.getElementById('console-input').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 const command = this.value.trim();
                 this.value = '';
 
                 const parts = command.split(' ');
+
+                // Команда /grant
+                if (parts[0] === '/grant') {
+                    if (parts.length !== 3) {
+                        logToConsole('Неверная команда! Используйте: /grant <user> admin/user');
+                        return;
+                    }
+
+                    const username = parts[1];
+                    const role = parts[2].toLowerCase();
+                    grantRole(username, role);
+                    return;
+                }
+
+                // Команда statement
                 if (parts.length !== 3 || parts[0] !== 'statement') {
                     logToConsole('Неверная команда! Используйте: statement <id> true/false');
                     return;
@@ -389,7 +437,6 @@
             }
         });
 
-        // Уведомления
         function addNotification(message) {
             let notifications = JSON.parse(localStorage.getItem('notifications')) || [];
             notifications.push({ message, date: new Date().toISOString() });
@@ -424,11 +471,12 @@
             const notificationList = document.getElementById('notification-list');
             notificationList.style.display = notificationList.style.display === 'block' ? 'none' : 'block';
             if (notificationList.style.display === 'block') {
-                localStorage.setItem('notifications', JSON.stringify([])); // Очищаем уведомления после просмотра
+                localStorage.setItem('notifications', JSON.stringify([]));
                 updateNotificationBell();
             }
         });
 
+        let lastRequestCount = 0;
         function checkForNewRequests() {
             const requests = JSON.parse(localStorage.getItem('requests')) || [];
             if (requests.length > lastRequestCount) {
@@ -438,7 +486,7 @@
                 });
             }
             lastRequestCount = requests.length;
-            setTimeout(checkForNewRequests, 5000); // Проверяем каждые 5 секунд
+            setTimeout(checkForNewRequests, 5000);
         }
 
         window.onload = function() {
