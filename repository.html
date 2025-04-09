@@ -215,10 +215,53 @@
                 }
             ];
 
+            // Запасной вариант, если API не работает
+            const fallbackData = [
+                {
+                    nickname: "IGBerko",
+                    repos: [
+                        {
+                            name: "ShahtJa",
+                            releases: [
+                                { name: "ShahtJa v1.0", tag: "v1.0", url: "https://github.com/IGBerko/ShahtJa/releases/download/v1.0/net.shaft.framework.ShahtJa.jar" }
+                            ]
+                        },
+                        {
+                            name: "JarImporter",
+                            releases: [
+                                { name: "JarImporter v1.0", tag: "v1.0", url: "https://github.com/IGBerko/net.shaft.jar.JarImporter/releases/download/v1.0/net.shaft.jar.JarImporter.jar" }
+                            ]
+                        }
+                    ]
+                }
+            ];
+
             const repoContainer = document.getElementById('repo-container');
             repoContainer.innerHTML = '';
 
-            for (const user of users) {
+            let dataToUse = [];
+
+            try {
+                for (const user of users) {
+                    const userData = { nickname: user.nickname, repos: [] };
+                    for (const repo of user.repos) {
+                        const response = await fetch(repo.url);
+                        if (!response.ok) throw new Error('API error');
+                        const releases = await response.json();
+                        userData.repos.push({ name: repo.name, releases: releases.map(r => ({
+                            name: r.assets[0]?.name || "Unknown",
+                            tag: r.tag_name,
+                            url: r.assets[0]?.browser_download_url || "#"
+                        })) });
+                    }
+                    dataToUse.push(userData);
+                }
+            } catch (error) {
+                console.error('Error loading repositories:', error);
+                dataToUse = fallbackData;
+            }
+
+            for (const user of dataToUse) {
                 const userFolder = document.createElement('div');
                 userFolder.className = 'user-folder';
                 userFolder.dataset.nickname = user.nickname.toLowerCase();
@@ -227,35 +270,26 @@
                 repoList.className = 'repo-list';
 
                 for (const repo of user.repos) {
-                    try {
-                        const response = await fetch(repo.url);
-                        const releases = await response.json();
+                    const repoItem = document.createElement('div');
+                    repoItem.className = 'repo-item';
+                    repoItem.dataset.repo = repo.name.toLowerCase();
+                    repoItem.innerHTML = `<h3>${repo.name}</h3>`;
 
-                        const repoItem = document.createElement('div');
-                        repoItem.className = 'repo-item';
-                        repoItem.dataset.repo = repo.name.toLowerCase();
-                        repoItem.innerHTML = `<h3>${repo.name}</h3>`;
-
-                        releases.forEach(release => {
-                            release.assets.forEach(asset => {
-                                const releaseItem = document.createElement('div');
-                                releaseItem.className = 'release-item';
-                                releaseItem.innerHTML = `
-                                    <span>${asset.name} (${release.tag_name})</span>
-                                    <a href="${asset.browser_download_url}" download>Download</a>
-                                `;
-                                repoItem.appendChild(releaseItem);
-                            });
+                    if (repo.releases.length === 0) {
+                        repoItem.innerHTML += '<p>Релизов нет</p>';
+                    } else {
+                        repo.releases.forEach(release => {
+                            const releaseItem = document.createElement('div');
+                            releaseItem.className = 'release-item';
+                            releaseItem.innerHTML = `
+                                <span>${release.name} (${release.tag})</span>
+                                <a href="${release.url}" download>Download</a>
+                            `;
+                            repoItem.appendChild(releaseItem);
                         });
-
-                        repoList.appendChild(repoItem);
-                    } catch (error) {
-                        console.error(`Error loading releases for ${repo.name}:`, error);
-                        const repoItem = document.createElement('div');
-                        repoItem.className = 'repo-item';
-                        repoItem.innerHTML = `<h3>${repo.name}</h3><p>Ошибка загрузки релизов</p>`;
-                        repoList.appendChild(repoItem);
                     }
+
+                    repoList.appendChild(repoItem);
                 }
 
                 userFolder.appendChild(repoList);
@@ -320,7 +354,6 @@
                 date: new Date().toISOString()
             };
 
-            // Сохранение в localStorage
             let requests = JSON.parse(localStorage.getItem('requests')) || [];
             requests.push(request);
             localStorage.setItem('requests', JSON.stringify(requests));
