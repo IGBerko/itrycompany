@@ -30,6 +30,29 @@
             text-align: center;
         }
 
+        .user-info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .user-info p {
+            margin: 5px 0;
+        }
+
+        .user-info button {
+            padding: 5px 10px;
+            background: #ff5733;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
         .search-container {
             margin: 20px auto;
             max-width: 800px;
@@ -189,6 +212,11 @@
     </style>
 </head>
 <body>
+    <div class="user-info" id="user-info">
+        <p>Пользователь: <span id="current-user"></span></p>
+        <p>Роль: <span id="current-role"></span></p>
+        <button onclick="logout()">Выйти</button>
+    </div>
     <h1>Itry - Repository</h1>
     <div class="search-container">
         <input type="text" id="search-input" placeholder="Поиск по никнеймам или репозиториям">
@@ -240,7 +268,6 @@
                     const releaseItem = document.createElement('div');
                     releaseItem.className = 'release-item';
 
-                    // Формируем ссылку на скачивание
                     const downloadUrl = repo.downloadUrl;
                     const filename = repo.filename;
                     const tag = repo.tag;
@@ -320,14 +347,12 @@
                 return;
             }
 
-            // Проверка формата URL
             const urlPattern = /^https:\/\/github\.com\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-]+\/releases\/tag\/.+$/;
             if (!urlPattern.test(repoUrl)) {
                 alert('Неверный формат URL! Используйте формат: https://github.com/owner/repo/releases/tag/tag_name (например, https://github.com/IGBerko/ShahtJa/releases/tag/1.0).');
                 return;
             }
 
-            // Извлекаем owner, repo и tag из URL
             const urlParts = repoUrl.match(/github\.com\/([a-zA-Z0-9-]+)\/([a-zA-Z0-9-]+)\/releases\/tag\/(.+)/);
             if (!urlParts) {
                 alert('Не удалось извлечь данные из URL. Проверьте формат.');
@@ -338,7 +363,6 @@
             const repo = urlParts[2];
             const tag = urlParts[3];
 
-            // Формируем ссылку на скачивание
             const downloadUrl = `https://github.com/${owner}/${repo}/releases/download/${tag}/${filename}`;
 
             const request = {
@@ -366,7 +390,23 @@
             closeRequestModal();
         }
 
-        window.onload = loadRepositories;
+        function logout() {
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('currentUserRole');
+            window.location.href = 'login.html';
+        }
+
+        window.onload = function() {
+            const currentUser = localStorage.getItem('currentUser');
+            const currentRole = localStorage.getItem('currentUserRole');
+            if (currentUser) {
+                document.getElementById('current-user').textContent = currentUser;
+                document.getElementById('current-role').textContent = currentRole;
+            } else {
+                document.getElementById('user-info').style.display = 'none';
+            }
+            loadRepositories();
+        };
     </script>
 </body>
 </html>
