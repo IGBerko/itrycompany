@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Itry - Admin Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background: linear-gradient(135deg, #1a0933, #3b1a66, #2e1a4d);
+            min-height: 100vh;
+            color: white;
+            padding: 40px;
+        }
+
+        h1 {
+            font-size: 3.5em;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            animation: glow 2s ease-in-out infinite alternate;
+            background: linear-gradient(45deg, #ff5733, #33caff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+
+        #auth-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #2e1a4d;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+            text-align: center;
+            z-index: 1000;
+        }
+
+        #auth-panel input {
+            padding: 10px;
+            margin: 10px 0;
+            width: 100%;
+            background: #1a0933;
+            border: 1px solid #33caff;
+            color: white;
+            border-radius: 5px;
+        }
+
+        #auth-panel button {
+            padding: 10px 20px;
+            background: #ff5733;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .requests-container {
+            margin-top: 40px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            display: none;
+        }
+
+        .request-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+        }
+
+        .request-item p {
+            margin: 5px 0;
+        }
+
+        .request-item span {
+            color: #33caff;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 10px #fff, 0 0 20px #ff5733, 0 0 30px #33caff; }
+            to { text-shadow: 0 0 20px #fff, 0 0 30px #ff5733, 0 0 40px #33caff; }
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+    </style>
+</head>
+<body>
+    <h1>Itry - Admin Panel</h1>
+    <div id="auth-panel">
+        <h3>Вход в админ-панель</h3>
+        <input type="text" id="login-input" placeholder="Логин">
+        <input type="password" id="password-input" placeholder="Пароль">
+        <button onclick="checkAuth()">Войти</button>
+    </div>
+    <div class="requests-container" id="requests-container"></div>
+
+    <script>
+        const CORRECT_LOGIN = "admin";
+        const CORRECT_PASSWORD = "admin";
+
+        function checkAuth() {
+            const login = document.getElementById('login-input').value;
+            const password = document.getElementById('password-input').value;
+
+            if (login === CORRECT_LOGIN && password === CORRECT_PASSWORD) {
+                sessionStorage.setItem('adminAccess', 'true');
+                document.getElementById('auth-panel').style.display = 'none';
+                document.getElementById('requests-container').style.display = 'block';
+                loadRequests();
+            } else {
+                alert('Неверный логин или пароль!');
+            }
+        }
+
+        function loadRequests() {
+            const requests = JSON.parse(localStorage.getItem('requests')) || [];
+            const container = document.getElementById('requests-container');
+            container.innerHTML = '';
+
+            if (requests.length === 0) {
+                container.innerHTML = '<p>Заявок пока нет</p>';
+                return;
+            }
+
+            requests.forEach((request, index) => {
+                const requestItem = document.createElement('div');
+                requestItem.className = 'request-item';
+                requestItem.innerHTML = `
+                    <p><span>Отдел:</span> ${request.department}</p>
+                    <p><span>Текст:</span> ${request.text}</p>
+                    <p><span>Дата:</span> ${new Date(request.date).toLocaleString()}</p>
+                `;
+                container.appendChild(requestItem);
+            });
+        }
+
+        window.onload = function() {
+            if (sessionStorage.getItem('adminAccess') === 'true') {
+                document.getElementById('auth-panel').style.display = 'none';
+                document.getElementById('requests-container').style.display = 'block';
+                loadRequests();
+            } else {
+                document.getElementById('auth-panel').style.display = 'block';
+                document.getElementById('requests-container').style.display = 'none';
+            }
+        };
+    </script>
+</body>
+</html>
