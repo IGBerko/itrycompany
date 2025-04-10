@@ -233,7 +233,7 @@
     <div class="requests-container" id="requests-container"></div>
     <div class="console-container" id="console-container">
         <h3>Консоль</h3>
-        <input type="text" class="console-input" id="console-input" placeholder="Введите команду (например, statement 0 true или /grant user admin)">
+        <input type="text" class="console-input" id="console-input" placeholder="Введите команду (например, /listusers, /statement clear, /statement delete <id>)">
         <div class="console-output" id="console-output"></div>
     </div>
 
@@ -261,6 +261,8 @@
             }
 
             sessionStorage.setItem('adminAccess', 'true');
+            localStorage.setItem('currentUser', login); // Сохраняем текущего пользователя
+            localStorage.setItem('currentUserRole', user.role); // Сохраняем роль
             document.getElementById('auth-panel').style.display = 'none';
             document.getElementById('requests-container').style.display = 'block';
             document.getElementById('console-container').style.display = 'block';
@@ -355,6 +357,38 @@
             loadRequests();
         }
 
+        function deleteRequest(index) {
+            let requests = JSON.parse(localStorage.getItem('requests')) || [];
+            if (isNaN(index) || index < 0 || index >= requests.length) {
+                logToConsole(`Заявка с ID ${index} не найдена!`);
+                return;
+            }
+            const deletedRequest = requests.splice(index, 1)[0];
+            localStorage.setItem('requests', JSON.stringify(requests));
+            logToConsole(`Заявка ${index} удалена.`);
+            addNotification(`Заявка ${index} от ${deletedRequest.login} удалена.`);
+            loadRequests();
+        }
+
+        function clearRequests() {
+            localStorage.setItem('requests', JSON.stringify([]));
+            logToConsole('Все заявки удалены.');
+            addNotification('Все заявки удалены.');
+            loadRequests();
+        }
+
+        function listUsers() {
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            if (users.length === 0) {
+                logToConsole('Пользователей нет.');
+                return;
+            }
+            logToConsole('Список пользователей:');
+            users.forEach(user => {
+                logToConsole(`- ${user.login} (роль: ${user.role})`);
+            });
+        }
+
         function logToConsole(message) {
             const consoleOutput = document.getElementById('console-output');
             const logEntry = document.createElement('p');
@@ -381,13 +415,12 @@
             localStorage.setItem('users', JSON.stringify(users));
             logToConsole(`Роль пользователя ${username} изменена на ${role}.`);
 
-            // Если текущий пользователь меняет свою роль, обновляем currentUserRole
             const currentUser = localStorage.getItem('currentUser');
             if (currentUser === username) {
                 localStorage.setItem('currentUserRole', role);
                 if (role !== 'admin') {
                     sessionStorage.removeItem('adminAccess');
-                    window.location.reload(); // Перезагружаем страницу, чтобы выйти из админ-панели
+                    window.location.href = 'repository.html'; // Перенаправляем на repository.html
                 }
             }
         }
@@ -399,41 +432,70 @@
 
                 const parts = command.split(' ');
 
-                // Команда /grant
+                if (parts[0] === '/listusers') {
+                    listUsers();
+                    return;
+                }
+
                 if (parts[0] === '/grant') {
                     if (parts.length !== 3) {
                         logToConsole('Неверная команда! Используйте: /grant <user> admin/user');
                         return;
                     }
-
                     const username = parts[1];
                     const role = parts[2].toLowerCase();
                     grantRole(username, role);
                     return;
                 }
 
-                // Команда statement
-                if (parts.length !== 3 || parts[0] !== 'statement') {
-                    logToConsole('Неверная команда! Используйте: statement <id> true/false');
+                if (parts[0] === '/statement') {
+                    if (parts.length < 2) {
+                        logToConsole('Неверная команда! Используйте: /statement clear, /statement delete <id>, или statement <id> true/false');
+                        return;
+                    }
+
+                    const action = parts[1].toLowerCase();
+
+                    if (action === 'clear') {
+                        clearRequests();
+                        return;
+                    }
+
+                    if (action === 'delete') {
+                        if (parts.length !== 3) {
+                            logToConsole('Неверная команда! Используйте: /statement delete <id>');
+                            return;
+                        }
+                        const id = parseInt(parts[2]);
+                        deleteRequest(id);
+                        return;
+                    }
+
+                    if (parts.length !== 3) {
+                        logToConsole('Неверная команда! Используйте: statement <id> true/false');
+                        return;
+                    }
+
+                    const id = parseInt(parts[1]);
+                    const actionValue = parts[2].toLowerCase();
+
+                    const requests = JSON.parse(localStorage.getItem('requests')) || [];
+                    if (isNaN(id) || id < 0 || id >= requests.length) {
+                        logToConsole(`Заявка с ID ${id} не найдена!`);
+                        return;
+                    }
+
+                    if (actionValue === 'true') {
+                        approveRequest(id);
+                    } else if (actionValue === 'false') {
+                        rejectRequest(id);
+                    } else {
+                        logToConsole('Неверное действие! Используйте true или false.');
+                    }
                     return;
                 }
 
-                const id = parseInt(parts[1]);
-                const action = parts[2].toLowerCase();
-
-                const requests = JSON.parse(localStorage.getItem('requests')) || [];
-                if (isNaN(id) || id < 0 || id >= requests.length) {
-                    logToConsole(`Заявка с ID ${id} не найдена!`);
-                    return;
-                }
-
-                if (action === 'true') {
-                    approveRequest(id);
-                } else if (action === 'false') {
-                    rejectRequest(id);
-                } else {
-                    logToConsole('Неверное действие! Используйте true или false.');
-                }
+                logToConsole('Неизвестная команда! Доступные команды: /listusers, /grant <user> admin/user, /statement clear, /statement delete <id>, statement <id> true/false');
             }
         });
 
@@ -490,6 +552,15 @@
         }
 
         window.onload = function() {
+            const currentUser = localStorage.getItem('currentUser');
+            const currentRole = localStorage.getItem('currentUserRole');
+
+            // Если пользователь не авторизован или не админ, перенаправляем на repository.html
+            if (!currentUser || currentRole !== 'admin') {
+                window.location.href = 'repository.html';
+                return;
+            }
+
             if (sessionStorage.getItem('adminAccess') === 'true') {
                 document.getElementById('auth-panel').style.display = 'none';
                 document.getElementById('requests-container').style.display = 'block';
