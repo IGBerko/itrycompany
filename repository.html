@@ -204,6 +204,63 @@
             display: none;
         }
 
+        .notification-bell {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            cursor: pointer;
+            font-size: 24px;
+            color: #33caff;
+            display: none;
+        }
+
+        .notification-bell:hover {
+            color: #ff5733;
+        }
+
+        .notification-bell::after {
+            content: attr(data-count);
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ff5733;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 12px;
+            display: none;
+        }
+
+        .notification-bell.has-notifications::after {
+            display: block;
+        }
+
+        .notification-list {
+            display: none;
+            position: fixed;
+            top: 50px;
+            right: 20px;
+            background: #2e1a4d;
+            border: 1px solid #33caff;
+            border-radius: 5px;
+            padding: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            width: 300px;
+            z-index: 1000;
+        }
+
+        .notification-item {
+            padding: 5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 5px;
+        }
+
+        .notification-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
         @keyframes glow {
             from { text-shadow: 0 0 10px #fff, 0 0 20px #ff5733, 0 0 30px #33caff; }
             to { text-shadow: 0 0 20px #fff, 0 0 30px #ff5733, 0 0 40px #33caff; }
@@ -220,6 +277,8 @@
         <button onclick="logout()">Выйти</button>
     </div>
     <h1>Itry - Repository</h1>
+    <div class="notification-bell" id="notification-bell" data-count="0">🔔</div>
+    <div class="notification-list" id="notification-list"></div>
     <div class="search-container">
         <input type="text" id="search-input" placeholder="Поиск по никнеймам или репозиториям">
     </div>
@@ -402,6 +461,42 @@
             window.location.href = 'admin.html';
         }
 
+        function updateNotificationBell() {
+            const currentUser = localStorage.getItem('currentUser');
+            if (!currentUser) return;
+
+            const notifications = JSON.parse(localStorage.getItem(`notifications_${currentUser}`)) || [];
+            const bell = document.getElementById('notification-bell');
+            bell.setAttribute('data-count', notifications.length);
+            if (notifications.length > 0) {
+                bell.classList.add('has-notifications');
+            } else {
+                bell.classList.remove('has-notifications');
+            }
+
+            const notificationList = document.getElementById('notification-list');
+            notificationList.innerHTML = '';
+            notifications.forEach((notif, index) => {
+                const notifItem = document.createElement('div');
+                notifItem.className = 'notification-item';
+                notifItem.innerHTML = `
+                    <p>${notif.message}</p>
+                    <p style="font-size: 0.8em; color: #aaa;">${new Date(notif.date).toLocaleString()}</p>
+                `;
+                notificationList.appendChild(notifItem);
+            });
+        }
+
+        document.getElementById('notification-bell').addEventListener('click', function() {
+            const currentUser = localStorage.getItem('currentUser');
+            const notificationList = document.getElementById('notification-list');
+            notificationList.style.display = notificationList.style.display === 'block' ? 'none' : 'block';
+            if (notificationList.style.display === 'block') {
+                localStorage.setItem(`notifications_${currentUser}`, JSON.stringify([]));
+                updateNotificationBell();
+            }
+        });
+
         window.onload = function() {
             const currentUser = localStorage.getItem('currentUser');
             const currentRole = localStorage.getItem('currentUserRole');
@@ -411,8 +506,11 @@
                 if (currentRole === 'admin') {
                     document.getElementById('admin-panel-button').style.display = 'inline-block';
                 }
+                document.getElementById('notification-bell').style.display = 'block';
+                updateNotificationBell();
             } else {
                 document.getElementById('user-info').style.display = 'none';
+                document.getElementById('notification-bell').style.display = 'none';
             }
             loadRepositories();
         };
