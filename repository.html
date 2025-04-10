@@ -51,6 +51,7 @@
             border-radius: 5px;
             cursor: pointer;
             margin-top: 5px;
+            margin-right: 5px;
         }
 
         .search-container {
@@ -215,6 +216,7 @@
     <div class="user-info" id="user-info">
         <p>Пользователь: <span id="current-user"></span></p>
         <p>Роль: <span id="current-role"></span></p>
+        <button id="admin-panel-button" onclick="goToAdminPanel()" style="display: none;">Перейти в админ-панель</button>
         <button onclick="logout()">Выйти</button>
     </div>
     <h1>Itry - Repository</h1>
@@ -396,12 +398,19 @@
             window.location.href = 'login.html';
         }
 
+        function goToAdminPanel() {
+            window.location.href = 'admin.html';
+        }
+
         window.onload = function() {
             const currentUser = localStorage.getItem('currentUser');
             const currentRole = localStorage.getItem('currentUserRole');
             if (currentUser) {
                 document.getElementById('current-user').textContent = currentUser;
                 document.getElementById('current-role').textContent = currentRole;
+                if (currentRole === 'admin') {
+                    document.getElementById('admin-panel-button').style.display = 'inline-block';
+                }
             } else {
                 document.getElementById('user-info').style.display = 'none';
             }
