@@ -261,8 +261,8 @@
             }
 
             sessionStorage.setItem('adminAccess', 'true');
-            localStorage.setItem('currentUser', login); // Сохраняем текущего пользователя
-            localStorage.setItem('currentUserRole', user.role); // Сохраняем роль
+            localStorage.setItem('currentUser', login);
+            localStorage.setItem('currentUserRole', user.role);
             document.getElementById('auth-panel').style.display = 'none';
             document.getElementById('requests-container').style.display = 'block';
             document.getElementById('console-container').style.display = 'block';
@@ -322,6 +322,12 @@
             });
         }
 
+        function addUserNotification(username, message) {
+            let userNotifications = JSON.parse(localStorage.getItem(`notifications_${username}`)) || [];
+            userNotifications.push({ message, date: new Date().toISOString() });
+            localStorage.setItem(`notifications_${username}`, JSON.stringify(userNotifications));
+        }
+
         function approveRequest(index) {
             let requests = JSON.parse(localStorage.getItem('requests')) || [];
             const request = requests[index];
@@ -345,15 +351,26 @@
 
             logToConsole(`Заявка ${index} одобрена! Репозиторий добавлен.`);
             addNotification(`Заявка ${index} от ${request.login} одобрена.`);
+
+            // Уведомление пользователю
+            addUserNotification(request.login, `Ваша заявка "${request.repoName}" (ID: ${index}) была одобрена.`);
+
             loadRequests();
         }
 
         function rejectRequest(index) {
             let requests = JSON.parse(localStorage.getItem('requests')) || [];
-            requests[index].status = 'rejected';
+            const request = requests[index];
+            request.status = 'rejected';
+            requests[index] = request;
             localStorage.setItem('requests', JSON.stringify(requests));
+
             logToConsole(`Заявка ${index} отклонена.`);
-            addNotification(`Заявка ${index} от ${requests[index].login} отклонена.`);
+            addNotification(`Заявка ${index} от ${request.login} отклонена.`);
+
+            // Уведомление пользователю
+            addUserNotification(request.login, `Ваша заявка "${request.repoName}" (ID: ${index}) была отклонена.`);
+
             loadRequests();
         }
 
@@ -365,15 +382,29 @@
             }
             const deletedRequest = requests.splice(index, 1)[0];
             localStorage.setItem('requests', JSON.stringify(requests));
+
             logToConsole(`Заявка ${index} удалена.`);
             addNotification(`Заявка ${index} от ${deletedRequest.login} удалена.`);
+
+            // Уведомление пользователю
+            addUserNotification(deletedRequest.login, `Ваша заявка "${deletedRequest.repoName}" (ID: ${index}) была удалена.`);
+
             loadRequests();
         }
 
         function clearRequests() {
+            let requests = JSON.parse(localStorage.getItem('requests')) || [];
+            const deletedRequests = [...requests];
             localStorage.setItem('requests', JSON.stringify([]));
+
             logToConsole('Все заявки удалены.');
             addNotification('Все заявки удалены.');
+
+            // Уведомления пользователям
+            deletedRequests.forEach((request, index) => {
+                addUserNotification(request.login, `Ваша заявка "${request.repoName}" (ID: ${index}) была удалена (очистка всех заявок).`);
+            });
+
             loadRequests();
         }
 
@@ -420,7 +451,7 @@
                 localStorage.setItem('currentUserRole', role);
                 if (role !== 'admin') {
                     sessionStorage.removeItem('adminAccess');
-                    window.location.href = 'repository.html'; // Перенаправляем на repository.html
+                    window.location.href = 'repository.html';
                 }
             }
         }
@@ -555,7 +586,6 @@
             const currentUser = localStorage.getItem('currentUser');
             const currentRole = localStorage.getItem('currentUserRole');
 
-            // Если пользователь не авторизован или не админ, перенаправляем на repository.html
             if (!currentUser || currentRole !== 'admin') {
                 window.location.href = 'repository.html';
                 return;
