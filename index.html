@@ -5,43 +5,262 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Itry</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Roboto Mono', monospace;
             background: linear-gradient(135deg, #1a0933, #3b1a66, #2e1a4d);
             min-height: 100vh;
             color: white;
             padding: 40px;
-            text-align: center;
+            position: relative;
         }
+
         h1 {
-            font-size: 4em;
+            font-size: 3.5em;
             text-transform: uppercase;
+            letter-spacing: 5px;
             animation: glow 2s ease-in-out infinite alternate;
             background: linear-gradient(45deg, #ff5733, #33caff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            text-align: center;
         }
-        a {
-            color: #33caff;
-            font-size: 1.5em;
-            margin: 20px;
+
+        .user-info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .user-info p {
+            margin: 5px 0;
+        }
+
+        .user-info button {
+            padding: 5px 10px;
+            background: #ff5733;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 5px;
+            margin-right: 5px;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 80vh;
+        }
+
+        .buttons {
+            margin-top: 40px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .buttons a {
+            padding: 15px 30px;
+            background: #ff5733;
+            color: white;
             text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background 0.3s ease;
         }
-        a:hover {
+
+        .buttons a:hover {
+            background: #33caff;
+        }
+
+        .tech-stack {
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        .tech-stack h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            color: #33caff;
+        }
+
+        .tech-stack ul {
+            list-style: none;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .tech-stack li {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .notification-bell {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            cursor: pointer;
+            font-size: 24px;
+            color: #33caff;
+            display: none;
+        }
+
+        .notification-bell:hover {
             color: #ff5733;
         }
+
+        .notification-bell::after {
+            content: attr(data-count);
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ff5733;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 12px;
+            display: none;
+        }
+
+        .notification-bell.has-notifications::after {
+            display: block;
+        }
+
+        .notification-list {
+            display: none;
+            position: fixed;
+            top: 50px;
+            right: 20px;
+            background: #2e1a4d;
+            border: 1px solid #33caff;
+            border-radius: 5px;
+            padding: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            width: 300px;
+            z-index: 1000;
+        }
+
+        .notification-item {
+            padding: 5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 5px;
+        }
+
+        .notification-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
         @keyframes glow {
             from { text-shadow: 0 0 10px #fff, 0 0 20px #ff5733, 0 0 30px #33caff; }
             to { text-shadow: 0 0 20px #fff, 0 0 30px #ff5733, 0 0 40px #33caff; }
         }
+
         @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
     </style>
 </head>
 <body>
-    <h1>Itry</h1>
-    <p>Добро пожаловать в мир технологий shaft!</p>
-    <div>
-        <a href="https://igberko.github.io/itrycompany/downloads.html">Downloads</a>
+    <div class="user-info" id="user-info">
+        <p>Пользователь: <span id="current-user"></span></p>
+        <p>Роль: <span id="current-role"></span></p>
+        <button id="admin-panel-button" onclick="goToAdminPanel()" style="display: none;">Перейти в админ-панель</button>
+        <button onclick="logout()">Выйти</button>
     </div>
+    <div class="notification-bell" id="notification-bell" data-count="0">🔔</div>
+    <div class="notification-list" id="notification-list"></div>
+    <div class="container">
+        <h1>Itry</h1>
+        <div class="buttons">
+            <a href="repository.html">Репозитории</a>
+            <a href="downloads.html">Загрузки</a>
+        </div>
+        <div class="tech-stack">
+            <h3>Технологии</h3>
+            <ul>
+                <li>HTML</li>
+                <li>CSS</li>
+                <li>JavaScript</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function logout() {
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('currentUserRole');
+            window.location.href = 'login.html';
+        }
+
+        function goToAdminPanel() {
+            window.location.href = 'admin.html';
+        }
+
+        function updateNotificationBell() {
+            const currentUser = localStorage.getItem('currentUser');
+            if (!currentUser) return;
+
+            const notifications = JSON.parse(localStorage.getItem(`notifications_${currentUser}`)) || [];
+            const bell = document.getElementById('notification-bell');
+            bell.setAttribute('data-count', notifications.length);
+            if (notifications.length > 0) {
+                bell.classList.add('has-notifications');
+            } else {
+                bell.classList.remove('has-notifications');
+            }
+
+            const notificationList = document.getElementById('notification-list');
+            notificationList.innerHTML = '';
+            notifications.forEach((notif, index) => {
+                const notifItem = document.createElement('div');
+                notifItem.className = 'notification-item';
+                notifItem.innerHTML = `
+                    <p>${notif.message}</p>
+                    <p style="font-size: 0.8em; color: #aaa;">${new Date(notif.date).toLocaleString()}</p>
+                `;
+                notificationList.appendChild(notifItem);
+            });
+        }
+
+        document.getElementById('notification-bell').addEventListener('click', function() {
+            const currentUser = localStorage.getItem('currentUser');
+            const notificationList = document.getElementById('notification-list');
+            notificationList.style.display = notificationList.style.display === 'block' ? 'none' : 'block';
+            if (notificationList.style.display === 'block') {
+                localStorage.setItem(`notifications_${currentUser}`, JSON.stringify([]));
+                updateNotificationBell();
+            }
+        });
+
+        window.onload = function() {
+            const currentUser = localStorage.getItem('currentUser');
+            const currentRole = localStorage.getItem('currentUserRole');
+            if (currentUser) {
+                document.getElementById('current-user').textContent = currentUser;
+                document.getElementById('current-role').textContent = currentRole;
+                if (currentRole === 'admin') {
+                    document.getElementById('admin-panel-button').style.display = 'inline-block';
+                }
+                document.getElementById('notification-bell').style.display = 'block';
+                updateNotificationBell();
+            } else {
+                document.getElementById('user-info').style.display = 'none';
+                document.getElementById('notification-bell').style.display = 'none';
+            }
+        };
+    </script>
 </body>
 </html>
